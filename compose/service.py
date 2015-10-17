@@ -683,7 +683,7 @@ class Service(object):
         devices = options.get('devices', None)
         cgroup_parent = options.get('cgroup_parent', None)
 
-        return self.client.create_host_config(
+        host_config = self.client.create_host_config(
             links=self._get_links(link_to_self=one_off),
             port_bindings=port_bindings,
             binds=options.get('binds'),
@@ -706,6 +706,8 @@ class Service(object):
             ipc_mode=options.get('ipc'),
             cgroup_parent=cgroup_parent
         )
+
+        return host_config
 
     def build(self, no_cache=False, pull=False):
         log.info('Building %s' % self.name)
