@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
+import os
 from functools import reduce
 
 from docker.errors import APIError
@@ -14,6 +15,7 @@ from .const import LABEL_PROJECT
 from .const import LABEL_SERVICE
 from .container import Container
 from .legacy import check_for_legacy_containers
+from .network import Network
 from .service import ContainerNet
 from .service import ConvergenceStrategy
 from .service import Net
@@ -265,6 +267,44 @@ class Project(object):
 
     def remove_stopped(self, service_names=None, **options):
         all_containers = self.containers(service_names, stopped=True)
+
+        networking = {}
+        services = self.get_services(service_names)
+
+        manual_net = False
+
+        for service in services:
+            manual_net = service.net.mode == 'manual'
+            service.remove_duplicate_containers()
+
+            if manual_net:
+                service.net.mode = None
+                if os.geteuid == 0:
+                    networking.update(Network.parse_options(service.name,
+                                                            service.options))
+
+                else:
+                    log.error('Not running as root, not setting up extra networking')
+                    manual_net = False
+
+                # Pop keywords so that we pass docker validation moving forward
+                for keyw in Network.keywords():
+                    try:
+                        service.options.pop(keyw)
+                    except KeyError:
+                        pass
+
+        if manual_net:
+            # Carve out the networking data
+            for container in all_containers:
+                if networking.get(container.service):
+                    networking[container.service]['short_id'] = container.short_id
+                    networking[container.service]['client'] = container.client
+
+            # execute_net_cleanup undoes the network provisioning in up
+            net = Network(networking)
+            net.execute_net_cleanup()
+
         stopped_containers = [c for c in all_containers if not c.is_running]
         parallel_execute(
             objects=stopped_containers,
