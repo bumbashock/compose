@@ -331,17 +331,40 @@ class Project(object):
            do_build=True,
            timeout=DEFAULT_TIMEOUT):
 
+        networking = {}
         services = self.get_services(service_names, include_deps=start_deps)
+
+        # Sanitize net=manual option by renaming it to none:
+        manual_net = False
 
         for service in services:
             service.remove_duplicate_containers()
 
+            manual_net = service.net.mode == 'manual'
+
+            if manual_net:
+                # Assign None to service.options['net'] to pass docker
+                # validation
+                service.net = Net(None)
+                if os.geteuid() == 0:
+                    # Get all the relevant networking keywords from service
+                    networking.update(Network.parse_options(service.name,
+                                                            service.options))
+
+                else:
+                    log.error('Not running as root, not setting up extra networking')
+                    manual_net = False
+
+                # Pop keywords so that we pass docker validation moving forward
+                for keyw in Network.keywords():
+                    try:
+                        service.options.pop(keyw)
+                    except KeyError:
+                        pass
+
         plans = self._get_convergence_plans(services, strategy)
 
-        if self.use_networking:
-            self.ensure_network_exists()
-
-        return [
+        containers = [
             container
             for service in services
             for container in service.execute_convergence_plan(
@@ -350,6 +373,30 @@ class Project(object):
                 timeout=timeout
             )
         ]
+
+        if manual_net:
+            # Once the containers are up, collect the short id and client
+            # object to do interface assignments as applicable
+            for container in containers:
+                if networking.get(container.service):
+                    networking[container.service]['short_id'] = container.short_id
+                    networking[container.service]['client'] = container.client
+
+            # Only proceed if the configuration validates (note net should be
+            # None):
+            log.debug("Validating network config and executing convergence")
+            if Network.validate_config(networking):
+                net = Network(networking)
+                net.execute_net_convergence()
+                log.info('Setup extra networking configurations')
+
+            else:
+                log.warning('Detected invalid networking configuration, not processing extra net configs')
+
+        if self.use_networking:
+            self.ensure_network_exists()
+
+        return containers
 
     def _get_convergence_plans(self, services, strategy):
         plans = {}
