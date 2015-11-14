@@ -278,7 +278,7 @@ class Project(object):
             service.remove_duplicate_containers()
 
             if manual_net:
-                service.net.mode = None
+                service.net = Net(None)
                 if os.geteuid == 0:
                     networking.update(Network.parse_options(service.name,
                                                             service.options))
