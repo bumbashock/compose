@@ -274,11 +274,11 @@ class Project(object):
         manual_net = False
 
         for service in services:
-            manual_net = service.net.mode == 'manual'
+            manual_net = service.net.mode == 'manual' or service.net.mode == 'none'
             service.remove_duplicate_containers()
 
             if manual_net:
-                service.net = Net(None)
+                # service.net = Net(None)
                 if os.geteuid == 0:
                     networking.update(Network.parse_options(service.name,
                                                             service.options))
@@ -340,12 +340,12 @@ class Project(object):
         for service in services:
             service.remove_duplicate_containers()
 
-            manual_net = service.net.mode == 'manual'
+            manual_net = service.net.mode == 'manual' or service.net.mode == 'none'
 
             if manual_net:
                 # Assign None to service.options['net'] to pass docker
                 # validation
-                service.net = Net(None)
+                # service.net = Net(None)
                 if os.geteuid() == 0:
                     # Get all the relevant networking keywords from service
                     networking.update(Network.parse_options(service.name,
