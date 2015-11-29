@@ -322,14 +322,20 @@ class Network(object):
         if not Network.run_shell("{0} netns exec {1} ip link set {2} up".format(
                 self.ip_bin, self.pid, ns_ifname)):
             report_error()
-        if re.search(':', ip_addr):
-            log.info("Configuring IPv6")
-            ip_bin = self.ip_bin + ' -6'
-        else:
-            ip_bin = self.ip_bin
-        if not Network.run_shell("{0} netns exec {1} ip addr add {2} dev {3}".format(
-                ip_bin, self.pid, ip_addr, ns_ifname)):
-            report_error()
+        if type(ip_addr) == str:
+            # Convert the IP address input into a list:
+            ip_addr = [ip_addr]
+
+        for _ip in ip_addr:
+            if re.search(':', _ip):
+                log.info("Configuring IPv6")
+                ip_bin = self.ip_bin + ' -6'
+            else:
+                ip_bin = self.ip_bin
+            if not Network.run_shell("{0} netns exec {1} ip addr add {2} dev {3}".format(
+                    ip_bin, self.pid, _ip, ns_ifname)):
+                report_error()
+
         return True
 
     def addgw(self, gw_addr, if_name):
