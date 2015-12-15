@@ -342,7 +342,7 @@ class Network(object):
 
         for _gw in gw_addr:
             if not Network.run_shell("{0} netns exec {1} ip route add default via {2}".format(
-                    self.ip_bin, self.pid, gw_addr)):
+                    self.ip_bin, self.pid, _gw)):
                 report_error()
 
         return True
