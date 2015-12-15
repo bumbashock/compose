@@ -274,7 +274,7 @@ class Project(object):
         manual_net = False
 
         for service in services:
-            manual_net = service.net.mode == 'manual'
+            manual_net = service.net.mode == 'none'
             service.remove_duplicate_containers()
 
             if manual_net:
@@ -340,7 +340,7 @@ class Project(object):
         for service in services:
             service.remove_duplicate_containers()
 
-            manual_net = service.net.mode == 'manual'
+            manual_net = service.net.mode == 'none'
 
             if manual_net:
                 # Assign None to service.options['net'] to pass docker
