@@ -98,7 +98,7 @@
         "net": {"type": "string"},
         "netdef": {
             "type": "object",
-            "items": {"type": "object"},
+            "items": {"type": ["object"]},
             "uniqueItems": true
         },
         "pid": {"type": ["string", "null"]},

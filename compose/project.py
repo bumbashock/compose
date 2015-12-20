@@ -279,7 +279,7 @@ class Project(object):
 
             if manual_net:
                 # service.net = Net(None)
-                if os.geteuid == 0:
+                if os.geteuid() == 0:
                     networking.update(Network.parse_options(service.name,
                                                             service.options))
 
